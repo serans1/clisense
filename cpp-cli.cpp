@@ -62,7 +62,7 @@ struct stream_record
 
 int main() try
 {
-    printf("Hello librealsesne1 ...\n");
+    printf("Hello librealsesne2 ...\n");
     rs::log_to_console(rs::log_severity::warn);
     //rs::log_to_file(rs::log_severity::debug, "librealsense.log");
 
