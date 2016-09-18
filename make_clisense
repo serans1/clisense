@@ -8,6 +8,15 @@ yellow=`tput setaf 3`
 reset=`tput sgr0`
 
 source /usr/local/ostroxt-x86_64_166/environment-setup-corei7-64-ostro-linux 
+if [ $? -eq 0 ]
+then
+  echo "${green}Ostro toolchain init success${reset}"
+else
+  echo "${red}Toolchain init error, exit ${reset}"
+  exit 0 
+fi
+
+
 src_file=cpp-cli.cpp
 file_src=/media/sf_vbox_share/$src_file
 
