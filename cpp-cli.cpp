@@ -65,7 +65,7 @@ int main() try
         if(dev->is_stream_enabled(rs::stream::infrared2))
         {
             glRasterPos2f(0, 0);
-            glDrawPixels(640, 480, GL_LUMINANCE, GL_UNSIGNED_BYTE, dev->get_frame_data(rs::stream::infrared2));
+            //glDrawPixels(640, 480, GL_LUMINANCE, GL_UNSIGNED_BYTE, dev->get_frame_data(rs::stream::infrared2));
         }
 
         glfwSwapBuffers(win);
