@@ -26,6 +26,13 @@ file_dest=$build_dest/$src_file
 git_dest=~/realsense_workspace/clisense
 git_file_dest=$git_dest/$src_file
 
+diff $file_src $file_dest
+if [ $? -eq 0 ]
+then
+  echo "${yellow}No changes in file ...${reset}"
+  exit 0 
+fi
+
 echo Copy from $file_src to $build_dest
 sudo cp $file_src $build_dest
 echo Permission change for $file_dest
