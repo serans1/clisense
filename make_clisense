@@ -26,6 +26,7 @@ file_dest=$build_dest/$src_file
 git_dest=~/realsense_workspace/clisense
 git_file_dest=$git_dest/$src_file
 
+echo "${blue}testing $file_src == $file_dest ${reset}"
 diff $file_src $file_dest
 if [ $? -eq 0 ]
 then
