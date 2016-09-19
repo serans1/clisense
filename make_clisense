@@ -21,13 +21,13 @@ src_file=cpp-cli.cpp
 file_src=/media/sf_vbox_share/$src_file
 
 build_dest=~/realsense_workspace/librealsense/examples/
-file_dest=$build_dest/$src_file
+file_dest=$build_dest$src_file
 
 git_dest=~/realsense_workspace/clisense
 git_file_dest=$git_dest/$src_file
 
 echo "${blue}testing $file_src == $file_dest ${reset}"
-diff $file_src $file_dest
+sudo diff $file_src $file_dest
 if [ $? -eq 0 ]
 then
   echo "${yellow}No changes in file ...${reset}"
