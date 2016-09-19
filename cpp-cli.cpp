@@ -14,7 +14,7 @@
 
 int main() try
 {
-	printf("Hello od");
+	printf("Hello od"); 
     // Create a context object. This object owns the handles to all connected realsense devices.
     rs::context ctx;
     printf("There are %d connected RealSense devices.\n", ctx.get_device_count());
