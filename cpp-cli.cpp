@@ -1,139 +1,82 @@
 // License: Apache 2.0. See LICENSE file in root directory.
 // Copyright(c) 2015 Intel Corporation. All Rights Reserved.
 
-///////////////////
-// cpp-headless  //
-///////////////////
+///////////////////////////////////////////////////////////
+// librealsense tutorial #2 - Accessing multiple streams //
+///////////////////////////////////////////////////////////
 
-// This sample captures 30 frames and writes the last frame to disk.
-// It can be useful for debugging an embedded system with no display. 
+// First include the librealsense C++ header file
 #include <librealsense/rs.hpp>
-
 #include <cstdio>
-#include <stdint.h>
-#include <vector>
-#include <map>
-#include <limits>
-#include <iostream>
 
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "third_party/stb_image_write.h"
-
-void normalize_depth_to_rgb(uint8_t rgb_image[], const uint16_t depth_image[], int width, int height)
-{
-    for (int i = 0; i < width * height; ++i)
-    {
-        if (auto d = depth_image[i])
-        {
-            uint8_t v = d * 255 / std::numeric_limits<uint16_t>::max();
-            rgb_image[i*3 + 0] = 255 - v;
-            rgb_image[i*3 + 1] = 255 - v;
-            rgb_image[i*3 + 2] = 255 - v;
-        }
-        else
-        {
-            rgb_image[i*3 + 0] = 0;
-            rgb_image[i*3 + 1] = 0;
-            rgb_image[i*3 + 2] = 0;
-        }
-    }
-}
-
-std::map<rs::stream,int> components_map =
-{
-    { rs::stream::depth,     3  },      // RGB
-    { rs::stream::color,     3  },
-    { rs::stream::infrared , 1  },      // Monochromatic
-    { rs::stream::infrared2, 1  },
-    { rs::stream::fisheye,   1  }
-};
-
-struct stream_record
-{
-    stream_record(void): frame_data(nullptr) {};
-    stream_record(rs::stream value): stream(value), frame_data(nullptr) {};
-    ~stream_record() { frame_data = nullptr;}
-    rs::stream          stream;
-    rs::intrinsics      intrinsics;
-    unsigned char   *   frame_data;
-};
-
+// Also include GLFW to allow for graphical display
+#include <GLFW/glfw3.h>
 
 int main() try
 {
-    printf("CliSense 0.0.1\n");
-	/** Define and parse the program options */ 
-
-    rs::log_to_console(rs::log_severity::warn);
-    //rs::log_to_file(rs::log_severity::debug, "librealsense.log");
-
+	printf("Hello od");
+    // Create a context object. This object owns the handles to all connected realsense devices.
     rs::context ctx;
     printf("There are %d connected RealSense devices.\n", ctx.get_device_count());
     if(ctx.get_device_count() == 0) return EXIT_FAILURE;
 
+    // This tutorial will access only a single device, but it is trivial to extend to multiple devices
     rs::device * dev = ctx.get_device(0);
     printf("\nUsing device 0, an %s\n", dev->get_name());
     printf("    Serial number: %s\n", dev->get_serial());
     printf("    Firmware version: %s\n", dev->get_firmware_version());
 
-    std::vector<stream_record> supported_streams;
-
-    for (int i=(int)rs::capabilities::depth; i <=(int)rs::capabilities::fish_eye; i++)
-        if (dev->supports((rs::capabilities)i))
-            supported_streams.push_back(stream_record((rs::stream)i));
-
-    for (auto & stream_record : supported_streams)
-        dev->enable_stream(stream_record.stream, rs::preset::best_quality);
-
-    /* activate video streaming */
+    // Configure all streams to run at VGA resolution at 60 frames per second
+    dev->enable_stream(rs::stream::depth, 640, 480, rs::format::z16, 60);
+    dev->enable_stream(rs::stream::color, 640, 480, rs::format::rgb8, 60);
+    dev->enable_stream(rs::stream::infrared, 640, 480, rs::format::y8, 60);
+    try { dev->enable_stream(rs::stream::infrared2, 640, 480, rs::format::y8, 60); }
+    catch(...) { printf("Device does not provide infrared2 stream.\n"); }
     dev->start();
 
-    /* retrieve actual frame size for each enabled stream*/
-    for (auto & stream_record : supported_streams)
-        stream_record.intrinsics = dev->get_stream_intrinsics(stream_record.stream);
-
-    /* Capture 30 frames to give autoexposure, etc. a chance to settle */
-    for (int i = 0; i < 30; ++i) dev->wait_for_frames();
-
-    /* Retrieve data from all the enabled streams */
-    for (auto & stream_record : supported_streams)
-        stream_record.frame_data = const_cast<uint8_t *>((const uint8_t*)dev->get_frame_data(stream_record.stream));
-
-    /* Transform Depth range map into color map */
-    stream_record depth = supported_streams[(int)rs::stream::depth];
-    std::vector<uint8_t> coloredDepth(depth.intrinsics.width * depth.intrinsics.height * components_map[depth.stream]);
-
-    /* Encode depth data into color image */
-    normalize_depth_to_rgb(coloredDepth.data(), (const uint16_t *)depth.frame_data, depth.intrinsics.width, depth.intrinsics.height);
-
-    /* Update captured data */
-    supported_streams[(int)rs::stream::depth].frame_data = coloredDepth.data();
-
-    /* Store captured frames into current directory */
-    for (auto & captured : supported_streams)
+    // Open a GLFW window to display our output
+    glfwInit();
+    GLFWwindow * win = glfwCreateWindow(1280, 960, "librealsense tutorial #2", nullptr, nullptr);
+    glfwMakeContextCurrent(win);
+    while(!glfwWindowShouldClose(win))
     {
-        std::stringstream ss;
-        ss << "cpp-headless-output-" << captured.stream << ".png";
+        // Wait for new frame data
+        glfwPollEvents();
+        dev->wait_for_frames();
 
-        std::cout << "Writing " << ss.str().data() << ", " << captured.intrinsics.width << " x " << captured.intrinsics.height << " pixels"   << std::endl;
+        glClear(GL_COLOR_BUFFER_BIT);
+        glPixelZoom(1, -1);
 
-        stbi_write_png(ss.str().data(),
-            captured.intrinsics.width,captured.intrinsics.height,
-            components_map[captured.stream],
-            captured.frame_data,
-            captured.intrinsics.width * components_map[captured.stream] );
+        // Display depth data by linearly mapping depth between 0 and 2 meters to the red channel
+        glRasterPos2f(-1, 1);
+        glPixelTransferf(GL_RED_SCALE, 0xFFFF * dev->get_depth_scale() / 2.0f);
+        glDrawPixels(640, 480, GL_RED, GL_UNSIGNED_SHORT, dev->get_frame_data(rs::stream::depth));
+        glPixelTransferf(GL_RED_SCALE, 1.0f);
+
+        // Display color image as RGB triples
+        glRasterPos2f(0, 1);
+        glDrawPixels(640, 480, GL_RGB, GL_UNSIGNED_BYTE, dev->get_frame_data(rs::stream::color));
+
+        // Display infrared image by mapping IR intensity to visible luminance
+        glRasterPos2f(-1, 0);
+        glDrawPixels(640, 480, GL_LUMINANCE, GL_UNSIGNED_BYTE, dev->get_frame_data(rs::stream::infrared));
+
+        // Display second infrared image by mapping IR intensity to visible luminance
+        if(dev->is_stream_enabled(rs::stream::infrared2))
+        {
+            glRasterPos2f(0, 0);
+            glDrawPixels(640, 480, GL_LUMINANCE, GL_UNSIGNED_BYTE, dev->get_frame_data(rs::stream::infrared2));
+        }
+
+        glfwSwapBuffers(win);
     }
 
-    printf("wrote frames to current working directory.\n");
     return EXIT_SUCCESS;
 }
 catch(const rs::error & e)
 {
-    std::cerr << "RealSense error calling " << e.get_failed_function() << "(" << e.get_failed_args() << "):\n    " << e.what() << std::endl;
-    return EXIT_FAILURE;
-}
-catch(const std::exception & e)
-{
-    std::cerr << e.what() << std::endl;
+    // Method calls against librealsense objects may throw exceptions of type rs::error
+    printf("rs::error was thrown when calling %s(%s):\n", e.get_failed_function().c_str(), e.get_failed_args().c_str());
+    printf("    %s\n", e.what());
     return EXIT_FAILURE;
 }
