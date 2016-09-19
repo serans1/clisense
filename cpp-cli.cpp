@@ -7,7 +7,6 @@
 
 // This sample captures 30 frames and writes the last frame to disk.
 // It can be useful for debugging an embedded system with no display.
-#include <boost/program_options.hpp>
 #include <librealsense/rs.hpp>
 
 #include <cstdio>
@@ -63,14 +62,8 @@ struct stream_record
 int main() try
 {
     printf("CliSense 0.0.1\n");
-	/** Define and parse the program options 
-     */ 
-    namespace po = boost::program_options; 
-    /*po::options_description desc("Options"); 
-    desc.add_options() 
-      ("help", "Print help messages") 
-      ("add", "additional options") 
-      ("like", "this");*/ 
+	/** Define and parse the program options */ 
+
     rs::log_to_console(rs::log_severity::warn);
     //rs::log_to_file(rs::log_severity::debug, "librealsense.log");
 
